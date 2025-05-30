@@ -1,0 +1,42 @@
+version: '3'
+
+vars:
+  TESTDIR: tests
+
+tasks:
+
+  linter:
+    desc: Run ruff linter and fix the suggested changes for the codebase
+    dir: '{{ .USER_WORKING_DIR }}'
+    vars:
+      SRC_DIR:
+        sh: if [ -d "src" ]; then echo src; else echo app; fi
+    cmds:
+      - uv run ruff check . --fix --verbose --config "src=['.', '{{ .SRC_DIR }}']"
+
+  formatter:
+    desc: Run ruff formatter to clean up the codebase
+    dir: '{{ .USER_WORKING_DIR }}'
+    cmds:
+      - uv run ruff format . --verbose
+
+  checker:
+    desc: Run type checker.
+    cmds:
+      - uv run mypy ./src --check-untyped-defs
+
+  run-test:
+    desc: Run tests(unit, integration and more...) in TESTDIR(default=tests) folder
+    dir: '{{ .USER_WORKING_DIR }}'
+    cmds:
+      - uv run pytest {{ .TESTDIR }} -sv --durations=0
+
+  precommit:
+    desc: Run pre-commit
+    cmds:
+      - uv run pre-commit run
+
+  check-updatable-libs:
+    desc: Run uv to see if libs can be updated
+    cmds:
+      - uv pip list --outdated
