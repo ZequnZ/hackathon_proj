@@ -1,7 +1,7 @@
 [project]
-name = "hackathon-ai-agent"
+name = "hackathon_proj"
 version = "0.1.0"
-description = "Add your description here"
+description = "AaltoAI Hackathon 2025 Project"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
