@@ -25,6 +25,10 @@ app.layout = html.Div([
     prevent_initial_call=True
 )
 def update_chat(n_clicks, user_msg, history):
+    """Updates the user-input element and chat history when the user sends a message.
+    This function is triggered when the user clicks the "Send" button.
+    It appends the user's message to the chat history and clears the user-input textbox.
+    """
     if not user_msg or user_msg.strip() == "":
         return dash.no_update, ""
     # Append user message
@@ -53,7 +57,6 @@ def render_chat(history):
                 html.Span(msg["content"], style={"background": color, "padding": "8px 12px", "borderRadius": "12px"})
             ], style={"textAlign": align, "margin": "8px 0"})
         )
-    print(messages)
     return messages
 
 if __name__ == "__main__":
