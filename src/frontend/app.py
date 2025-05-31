@@ -1,21 +1,20 @@
 import dash
-import dash_bootstrap_components as dbc
 from dash import Input, Output, State, dcc, html
 
 # Initialize the Dash app
-app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app = dash.Dash(__name__)
 
-app.layout = dbc.Container([
-    html.H2("Chat with your Dataset"),
+app.layout = html.Div([
+    html.H2("Chat with your Dataset", style={"textAlign": "center", "marginTop": "40px"}),
     dcc.Store(id="chat-history", data=[]),
     html.Div(id="chat-window", style={
-        "height": "400px", "overflowY": "auto", "border": "1px solid #ccc", "padding": "10px", "marginBottom": "10px"
+        "height": "400px", "overflowY": "auto", "border": "1px solid #ccc", "padding": "10px", "marginBottom": "10px", "background": "#fafafa", "maxWidth": "600px", "margin": "0 auto"
     }),
-    dbc.InputGroup([
-        dbc.Input(id="user-input", placeholder="Type your message...", type="text", autoFocus=True),
-        dbc.Button("Send", id="send-btn", n_clicks=0, color="primary")
-    ]),
-], style={"maxWidth": "600px", "marginTop": "40px"})
+    html.Div([
+        dcc.Input(id="user-input", placeholder="Type your message...", type="text", value="", style={"width": "80%", "padding": "10px", "borderRadius": "8px", "border": "1px solid #ccc"}, autoFocus=True),
+        html.Button("Send", id="send-btn", n_clicks=0, style={"width": "18%", "marginLeft": "2%", "padding": "10px", "borderRadius": "8px", "background": "#1976d2", "color": "white", "border": "none"})
+    ], style={"display": "flex", "maxWidth": "600px", "margin": "0 auto 40px auto"}),
+], style={"maxWidth": "700px", "margin": "0 auto"})
 
 @app.callback(
     Output("chat-history", "data"),
@@ -38,6 +37,8 @@ def update_chat(n_clicks, user_msg, history):
 
 @app.callback(
     Output("chat-window", "children"),
+    # "chat-history" is the ID of the dcc.Store component that holds the chat history
+    # "data" is the property that holds the chat messages
     Input("chat-history", "data")
 )
 def render_chat(history):
@@ -52,6 +53,7 @@ def render_chat(history):
                 html.Span(msg["content"], style={"background": color, "padding": "8px 12px", "borderRadius": "12px"})
             ], style={"textAlign": align, "margin": "8px 0"})
         )
+    print(messages)
     return messages
 
 if __name__ == "__main__":
