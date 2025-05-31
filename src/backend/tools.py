@@ -1,11 +1,17 @@
+import os
+
 from langchain_community.utilities.sql_database import SQLDatabase
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, inspect, text
 
-from utils.tool_creation import create_tool, registry
+from backend.utils.tool_creation import create_tool, registry
+
+if os.getenv("ENVIRONMENT") == "local":
+    DATABASE_URL = "postgresql://user:password@db:5432/northwind"
+else:
+    DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
 
 # Database setup (adjust as needed)
-DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
 engine = create_engine(DATABASE_URL)
 db = SQLDatabase(engine=engine)
 

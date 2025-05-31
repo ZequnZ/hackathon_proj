@@ -1,6 +1,5 @@
-from pydantic_settings import SettingsConfigDict
-
 from config_management.config_settings import BasicSettings
+from pydantic_settings import SettingsConfigDict
 
 
 class Settings(BasicSettings):
