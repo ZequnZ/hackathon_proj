@@ -91,15 +91,48 @@ Down below is the instruction for the database:
 # State type
 class State(TypedDict):
     messages: Annotated[list, add_messages]
+    result: str | None
+    follow_up_question: str | None
 
 
 # Model node
 def call_model(state: State) -> State:
     # Call the LLM with the current messages and available tools (schemas)
+
+    response_message = llm.invoke(
+        state["messages"], tools=registry.list_tools_by_schema()
+    )
     return {
         "messages": [
-            llm.invoke(state["messages"], tools=registry.list_tools_by_schema())
+            response_message,
+        ],
+        "result": response_message.content,
+        "follow_up_question": None,
+    }
+
+
+def suggest_follow_up_question(state: State) -> State:
+    """
+    Suggest a follow-up question to the user based on the result of the query.
+    """
+    system_prompt = """You will be given a question from clients and an answer provided by a data analyst agent.
+    Please suggest 3 follow-up question to the user based on that.
+    Make sure that they are relevant to the answer and the question and use concise language that can inspire the client to know more they want.
+
+    Down below is the instruction for the database being discussed:
+
+    {DB_instruction_prompt}
+    """
+    response_message = llm.invoke(
+        [
+            {"role": "system", "content": system_prompt},
+            state["messages"][1],
+            state["messages"][-1],
         ]
+    )
+    return {
+        "follow_up_question": response_message.content,
+        "result": state["result"],
     }
 
 
@@ -130,11 +163,12 @@ def call_tool(state: State) -> State:
         }
         new_messages.append(tool_response_message)
         print(tool_response_message["content"])
-    return {"messages": new_messages}
+    return {"messages": new_messages, "result": None}
 
 
 # Routing function
 def route_tools(state: State):
+    print(state)
     last_message = state["messages"][-1]
     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
         return "tools"
@@ -144,6 +178,8 @@ def route_tools(state: State):
         and last_message["tool_calls"]
     ):
         return "tools"
+    elif state["follow_up_question"] is None:
+        return "suggest_follow_up_question"
     return END
 
 
@@ -151,13 +187,22 @@ def route_tools(state: State):
 graph = StateGraph(State)
 graph.add_node("call_model", call_model)
 graph.add_node("tools", call_tool)
+graph.add_node("suggest_follow_up_question", suggest_follow_up_question)
+
 graph.add_edge(START, "call_model")
 graph.add_conditional_edges(
     "call_model",
     route_tools,
-    {"tools": "tools", END: END},
+    # {"tools": "tools", "result_summarizer": "result_summarizer", END: END},
+    {
+        "tools": "tools",
+        "suggest_follow_up_question": "suggest_follow_up_question",
+        END: END,
+    },
 )
 graph.add_edge("tools", "call_model")
+graph.add_edge("suggest_follow_up_question", END)
+# graph.add_edge("result_summarizer", END)
 graph_complete = graph.compile()
 
 if __name__ == "__main__":
@@ -170,8 +215,18 @@ if __name__ == "__main__":
         {"role": "user", "content": question},
     ]
     result = graph_complete.invoke({"messages": message_stack}, {"recursion_limit": 50})
+
+    # print(
+    #     result["messages"][-1]["content"]
+    #     if isinstance(result["messages"][-1], dict)
+    #     else result["messages"][-1].content
+    # )
+
     print(
-        result["messages"][-1]["content"]
-        if isinstance(result["messages"][-1], dict)
-        else result["messages"][-1].content
+        "Final result: ",
+        result["result"]
+        if result["result"] is not None
+        else result["messages"][-1]["content"],
     )
+
+    print("follow_up_question: ", result["follow_up_question"])
