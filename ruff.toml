@@ -1,11 +1,11 @@
 # Enable pycodestyle (`E`, `W`), Pyflakes (`F`), pyupgrade (`UP`)
 # McCabe complexity (`C901`), isort (`I`) codes by default.
-select = ["E", "F", "W", "C901", "I", "UP"]
-ignore = ["E501"]
+lint.select = ["E", "F", "W", "C901", "I", "UP"]
+lint.ignore = ["E501"]
 
 # Allow fix for all enabled rules (when `--fix`) is provided.
-fixable = ["ALL"]
-unfixable = []
+lint.fixable = ["ALL"]
+lint.unfixable = []
 
 [format]
 quote-style = "double"
