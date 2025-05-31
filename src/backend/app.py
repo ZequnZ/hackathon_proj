@@ -12,9 +12,10 @@ from backend.routers import health, prediction
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Check the connection to the database
-    DATABASE_URL = os.getenv(
-        "DATABASE_URL", "postgresql://user:password@db:5432/northwind"
-    )
+    if os.getenv("ENVIRONMENT") == "local":
+        DATABASE_URL = "postgresql://user:password@db:5432/northwind"
+    else:
+        DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
     try:
         engine = create_engine(DATABASE_URL)
         engine.connect()
