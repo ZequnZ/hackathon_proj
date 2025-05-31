@@ -12,6 +12,10 @@ engine = create_engine(DATABASE_URL)
 # Pydantic model for parameters
 class SQLDBQueryParams(BaseModel):
     query: str = Field(..., description="A detailed and correct SQL query.")
+    reasoning: str = Field(
+        ...,
+        description="The reasoning process of the query, explain your thought process.",
+    )
 
 
 # main_data = None
@@ -23,7 +27,7 @@ class SQLDBQueryParams(BaseModel):
     description="Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
     parameters_model=SQLDBQueryParams,
 )
-def sql_db_query(query: str) -> tuple[str, pd.DataFrame | None]:
+def sql_db_query(query: str, reasoning: str) -> tuple[str, pd.DataFrame | None]:
     """
     Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
     """
@@ -32,7 +36,8 @@ def sql_db_query(query: str) -> tuple[str, pd.DataFrame | None]:
             df = pd.read_sql(query, connection)
         # global main_data
         # main_data = df
-        return df.to_string(max_rows=30), df
+        # return df.to_string(max_rows=30), df
+        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=30)}", df
     except Exception as e:
         return f"Error: {e}", None
 

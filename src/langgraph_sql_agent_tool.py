@@ -11,7 +11,52 @@ from utils.get_langchain_llm import langchain_openai_client
 # LLM
 llm = langchain_openai_client
 
+DB_instruction_prompt = """
+You will beworking with the Northwind database, a classic relational schema for business data. Here is a summary of the tables and their relationships:
+
+Main Tables and Relationships:
+
+- categories: Stores product categories. Each product belongs to a category.
+- customer_customer_demo: Junction table linking customers and customer_demographics, representing many-to-many relationships.
+- customer_demographics: Stores demographic information for customers.
+- customers: Stores customer information. Each order is placed by a customer.
+- employees: Stores employee information. Each order is handled by an employee. Employees are assigned to territories (many-to-many).
+- employee_territories: Junction table linking employees and territories.
+- order_details: Junction table linking orders and products, containing details for each product in an order (many-to-many).
+- orders: Stores order information. Linked to customers, employees, shippers, and order_details.
+- products: Stores product information. Each product belongs to a category and a supplier. Linked to order_details.
+- region: Stores region information. Linked to territories.
+- shippers: Stores shipping company information. Each order is shipped by a shipper.
+- suppliers: Stores supplier information. Each product has a supplier.
+- territories: Stores sales territory information. Linked to region and employee_territories.
+- us_states: Stores US state information (for address normalization).
+
+Key Relationship Types:
+
+One-to-Many:
+  - categories → products
+  - suppliers → products
+  - customers → orders
+  - employees → orders
+  - shippers → orders
+  - region → territories
+
+Many-to-Many (via junction tables):
+  - orders ↔ products (order_details)
+  - employees ↔ territories (employee_territories)
+  - customers ↔ customer_demographics (customer_customer_demo)
+
+Summary:
+The Northwind schema models a business where customers place orders for products, which are supplied by suppliers and shipped by shippers. Employees manage orders and are assigned to territories, which are grouped into regions. Junction tables are used for many-to-many relationships, ensuring data normalization and flexibility.
+
+Instructions:
+Use this schema context to inform your data analysis, SQL query generation, and insights. When asked about relationships, always refer to this structure. If you need to join tables, use the described relationships to construct accurate queries.
+
+"""
+
 # System prompt
+# To start you should ALWAYS look at the tables in the database to see what you
+# can query. Do NOT skip this step.
 system_message = """
 # YOUR HIGH LEVEL TASKS
 You are an expert data analyst agent with deep knowledge of sql queries. Your task is to analyze data based on user's question and answer in a helpful way.
@@ -44,6 +89,7 @@ executing a query, rewrite the query and try again.
 database.
 """.format(
     dialect="PostgreSQL",
+    # DB_instruction_prompt=DB_instruction_prompt,
     top_k=5,
 )
 
@@ -52,16 +98,49 @@ database.
 class State(TypedDict):
     messages: Annotated[list, add_messages]
     data: pd.DataFrame | None
+    result: str | None
+    follow_up_question: str | None
 
 
 # Model node
 def call_model(state: State) -> State:
     # Call the LLM with the current messages and available tools (schemas)
+
+    response_message = llm.invoke(
+        state["messages"], tools=registry.list_tools_by_schema()
+    )
     return {
         "messages": [
-            llm.invoke(state["messages"], tools=registry.list_tools_by_schema())
+            response_message,
         ],
         "data": state["data"],
+        "result": response_message.content,
+        "follow_up_question": None,
+    }
+
+
+def suggest_follow_up_question(state: State) -> State:
+    """
+    Suggest a follow-up question to the user based on the result of the query.
+    """
+    system_prompt = """You will be given a question from clients and an answer provided by a data analyst agent.
+    Please suggest 3 follow-up question to the user based on that.
+    Make sure that they are relevant to the answer and the question and use concise language that can inspire the client to know more they want.
+
+    Down below is the instruction for the database being discussed:
+
+    {DB_instruction_prompt}
+    """
+    response_message = llm.invoke(
+        [
+            {"role": "system", "content": system_prompt},
+            state["messages"][1],
+            state["messages"][-1],
+        ]
+    )
+    return {
+        "follow_up_question": response_message.content,
+        "result": state["result"],
     }
 
 
@@ -101,12 +180,12 @@ def call_tool(state: State) -> State:
         }
         new_messages.append(tool_response_message)
     print(new_messages)
-    return {"messages": new_messages, "data": data}
-    # return {"messages": new_messages}
+    return {"messages": new_messages, "data": data, "result": None}
 
 
 # Routing function
 def route_tools(state: State):
+    print(state)
     last_message = state["messages"][-1]
     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
         return "tools"
@@ -116,13 +195,9 @@ def route_tools(state: State):
         and last_message["tool_calls"]
     ):
         return "tools"
+    elif state["follow_up_question"] is None:
+        return "suggest_follow_up_question"
     return END
-
-
-def call_model_or_create_visualization(state: State):
-    if state["data"] is not None:
-        return "create_visual"
-    return "call_model"
 
 
 def create_visual(state: State) -> State:
@@ -136,19 +211,29 @@ graph = StateGraph(State)
 graph.add_node("call_model", call_model)
 graph.add_node("tools", call_tool)
 graph.add_node("create_visual", create_visual)
+graph.add_node("suggest_follow_up_question", suggest_follow_up_question)
 
 graph.add_edge(START, "call_model")
 graph.add_conditional_edges(
     "call_model",
     route_tools,
-    {"tools": "tools", END: END},
+    # {"tools": "tools", "result_summarizer": "result_summarizer", END: END},
+    {
+        "tools": "tools",
+        "suggest_follow_up_question": "suggest_follow_up_question",
+        END: END,
+    },
 )
-# graph.add_edge("tools", "call_model")
-graph.add_conditional_edges(
-    "tools",
-    call_model_or_create_visualization,
-    {"call_model": "call_model", "create_visual": "create_visual"},
-)
+# graph.add_conditional_edges(
+#     "tools",
+#     call_model_or_create_visualization,
+#     {"call_model": "call_model", "create_visual": "create_visual"},
+# )
+graph.add_edge("tools", "call_model")
+graph.add_edge("suggest_follow_up_question", "create_visual")
+graph.add_edge("create_visual", END)
+
+# graph.add_edge("result_summarizer", END)
 graph_complete = graph.compile()
 
 # from pathlib import Path
@@ -169,7 +254,12 @@ if __name__ == "__main__":
         {"messages": message_stack, "data": None}, {"recursion_limit": 50}
     )
     print(
-        result["messages"][-1]["content"]
-        if isinstance(result["messages"][-1], dict)
-        else result["messages"][-1].content
+        "Final result: ",
+        (
+            result["result"]
+            if result["result"] is not None
+            else result["messages"][-1]["content"]
+        ),
     )
+
+    print("follow_up_question: ", result["follow_up_question"])
