@@ -1,0 +1,45 @@
+services:
+  app:
+    build:
+      context: ./
+      dockerfile: Dockerfile
+    # args:
+      # - DEPENDENCY_INSTALL_OPTION=--all-groups
+      # - INSTALL_UV=true
+    # For local testing
+    volumes:
+      - ./src/:/app/src/
+      - type: bind
+        source: pyproject.toml
+        target: /app/pyproject.toml
+      - type: bind
+        source: uv.lock
+        target: /app/uv.lock
+      - type: bind
+        source: Taskfile.yml
+        target: /app/Taskfile.yml
+      - type: bind
+        source: ruff.toml
+        target: /app/ruff.toml
+    env_file: ".env"
+    stdin_open: true
+    tty: true
+    command: bash
+    depends_on:
+      - db
+    ports:
+      - "8002:8002"
+    environment:
+      - ENVIRONMENT=local
+
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: db
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: password
+    volumes:
+      - ./data/Chinook_PostgreSql.sql:/docker-entrypoint-initdb.d/Chinook_PostgreSql.sql:ro
+      - ./data/northwind.sql:/docker-entrypoint-initdb.d/northwind.sql:ro
+    ports:
+      - "5432:5432"  # Expose PostgreSQL on the default port
