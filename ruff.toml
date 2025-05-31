@@ -1,3 +1,4 @@
+[lint]
 # Enable pycodestyle (`E`, `W`), Pyflakes (`F`), pyupgrade (`UP`)
 # McCabe complexity (`C901`), isort (`I`) codes by default.
 select = ["E", "F", "W", "C901", "I", "UP"]
