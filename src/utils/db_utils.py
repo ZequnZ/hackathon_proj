@@ -89,16 +89,6 @@ def run_query(
 #     return df
 
 
-# Example usage (remove or comment out in production):
-conn = get_db_connection(
-    user="postgres",
-    password="postgres",
-    dbname="northwind",
-    host="localhost",
-    port=55432,
-)
-
-
 def get_table_names(conn):
     """
     Get a list of table names in the PostgreSQL database.
@@ -108,6 +98,15 @@ def get_table_names(conn):
 
 
 if __name__ == "__main__":
-    # results = run_query(conn, "select * from us_states", (1,))
-    results = get_table_names(conn)
+    # Example usage (remove or comment out in production):
+    conn = get_db_connection(
+        user="user",
+        password="password",
+        dbname="northwind",
+        host="0.0.0.0",
+        port=5432,
+    )
+
+    results = run_query(conn, "select * from us_states", (1,))
+    # results = get_table_names(conn)
     print(results)
