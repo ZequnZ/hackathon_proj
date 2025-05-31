@@ -1,5 +1,6 @@
 import os
 
+import pandas as pd
 from langchain_community.utilities.sql_database import SQLDatabase
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, inspect, text
@@ -37,10 +38,10 @@ def sql_db_query(query: str, reasoning: str) -> str:
     """
     try:
         with engine.connect() as connection:
-            result = connection.execute(text(query))
-        return f"Reasoning: {reasoning}\n\nResult: {result.fetchall()}"
+            df = pd.read_sql(query, connection)
+        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=30)}", df
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: {e}", None
 
 
 # Pydantic model for parameters
