@@ -7,9 +7,9 @@ from psycopg2 import OperationalError
 def get_db_connection(
     user: str,
     password: str,
-    dbname: str = "postgres",
-    host: str = "db",
-    port: int = 5432,
+    dbname: str,
+    host: str,
+    port: int,
 ):
     """
     Establish a connection to the PostgreSQL database running in a container named 'db'.
@@ -60,5 +60,7 @@ conn = get_db_connection(
     port=55432,
 )
 
-results = run_query(conn, "select * from us_states", (1,))
-print(results)
+
+if __name__ == "__main__":
+    results = run_query(conn, "select * from us_states", (1,))
+    print(results)
