@@ -30,8 +30,8 @@ router = APIRouter(
 )
 def ask_agent(request: Request, body: ChatRequest, response: Response):
     # Check if the first message is a system message
-    if body.messages[0]["role"] != "system":
-        body.messages = [{"role": "system", "content": SYSTEM_PROMPT}] + body.messages
+    if body.messages[0]["type"] != "system":
+        body.messages = [{"type": "system", "content": SYSTEM_PROMPT}] + body.messages
 
     result = compiled_graph.invoke(
         {

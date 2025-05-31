@@ -249,8 +249,8 @@ if __name__ == "__main__":
     # question = "Which employee has the most orders? and show me the top 5 products."
     question = "Create a chart that compares total monthly revenue across countries for the last 12 months."
     message_stack = [
-        {"role": "system", "content": system_message},
-        {"role": "user", "content": question},
+        {"type": "system", "content": system_message},
+        {"type": "user", "content": question},
     ]
     result = graph_complete.invoke(
         {
