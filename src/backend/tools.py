@@ -2,16 +2,24 @@ from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, inspect, text
 import pandas as pd
 
-from utils.tool_creation import create_tool, registry
+from backend.utils.tool_creation import create_tool, registry
+
+if os.getenv("ENVIRONMENT") == "local":
+    DATABASE_URL = "postgresql://user:password@db:5432/northwind"
+else:
+    DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
 
 # Database setup (adjust as needed)
-DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
 engine = create_engine(DATABASE_URL)
 
 
 # Pydantic model for parameters
 class SQLDBQueryParams(BaseModel):
     query: str = Field(..., description="A detailed and correct SQL query.")
+    reasoning: str = Field(
+        ...,
+        description="The reasoning process of the query, explain your thought process.",
+    )
 
 
 # Tool function implementation
@@ -20,16 +28,16 @@ class SQLDBQueryParams(BaseModel):
     description="Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
     parameters_model=SQLDBQueryParams,
 )
-def sql_db_query(query: str) -> str:
+def sql_db_query(query: str, reasoning: str) -> str:
     """
     Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
     """
     try:
         with engine.connect() as connection:
             df = pd.read_sql(query, connection)
-        return df.to_string(max_rows=30)
+        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=30)}", df
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: {e}", None
 
 
 # Pydantic model for parameters
