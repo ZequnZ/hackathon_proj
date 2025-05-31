@@ -13,6 +13,10 @@ db = SQLDatabase(engine=engine)
 # Pydantic model for parameters
 class SQLDBQueryParams(BaseModel):
     query: str = Field(..., description="A detailed and correct SQL query.")
+    reasoning: str = Field(
+        ...,
+        description="The reasoning process of the query, explain your thought process.",
+    )
 
 
 # Tool function implementation
@@ -21,14 +25,14 @@ class SQLDBQueryParams(BaseModel):
     description="Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
     parameters_model=SQLDBQueryParams,
 )
-def sql_db_query(query: str) -> str:
+def sql_db_query(query: str, reasoning: str) -> str:
     """
     Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
     """
     try:
         with engine.connect() as connection:
             result = connection.execute(text(query))
-        return result.fetchall()
+        return f"Reasoning: {reasoning}\n\nResult: {result.fetchall()}"
     except Exception as e:
         return f"Error: {e}"
 
