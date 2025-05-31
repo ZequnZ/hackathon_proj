@@ -99,6 +99,7 @@ class State(TypedDict):
     messages: Annotated[list, add_messages]
     data: pd.DataFrame | None
     result: str | None
+    visual_created: bool
     follow_up_question: str | None
 
 
@@ -115,6 +116,7 @@ def call_model(state: State) -> State:
         ],
         "data": state["data"],
         "result": response_message.content,
+        "visual_created": False,  # Initially set to False
         "follow_up_question": None,
     }
 
@@ -195,6 +197,8 @@ def route_tools(state: State):
         and last_message["tool_calls"]
     ):
         return "tools"
+    elif state["visual_created"] is False:
+        return "create_visual"
     elif state["follow_up_question"] is None:
         return "suggest_follow_up_question"
     return END
@@ -203,6 +207,7 @@ def route_tools(state: State):
 def create_visual(state: State) -> State:
     # print(code_to_be_executed)
     print("GRAPH GENERATED")
+    state["visual_created"] = True
     return state
 
 
@@ -220,6 +225,7 @@ graph.add_conditional_edges(
     # {"tools": "tools", "result_summarizer": "result_summarizer", END: END},
     {
         "tools": "tools",
+        "create_visual": "create_visual",
         "suggest_follow_up_question": "suggest_follow_up_question",
         END: END,
     },
@@ -230,8 +236,8 @@ graph.add_conditional_edges(
 #     {"call_model": "call_model", "create_visual": "create_visual"},
 # )
 graph.add_edge("tools", "call_model")
-graph.add_edge("suggest_follow_up_question", "create_visual")
-graph.add_edge("create_visual", END)
+graph.add_edge("create_visual", "suggest_follow_up_question")
+graph.add_edge("suggest_follow_up_question", END)
 
 # graph.add_edge("result_summarizer", END)
 graph_complete = graph.compile()
