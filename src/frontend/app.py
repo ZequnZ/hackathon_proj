@@ -138,7 +138,7 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
         response = requests.post(
             "http://127.0.0.1:8002/chat/ask_agent",
             json=payload,
-            timeout=20,
+            timeout=40,
         )
         valid_response_keys = [
             "type",
