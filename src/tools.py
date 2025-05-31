@@ -1,13 +1,12 @@
-from langchain_community.utilities.sql_database import SQLDatabase
 from pydantic import BaseModel, Field
 from sqlalchemy import create_engine, inspect, text
+import pandas as pd
 
 from utils.tool_creation import create_tool, registry
 
 # Database setup (adjust as needed)
 DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
 engine = create_engine(DATABASE_URL)
-db = SQLDatabase(engine=engine)
 
 
 # Pydantic model for parameters
@@ -27,8 +26,8 @@ def sql_db_query(query: str) -> str:
     """
     try:
         with engine.connect() as connection:
-            result = connection.execute(text(query))
-        return result.fetchall()
+            df = pd.read_sql(query, connection)
+        return df.to_string(max_rows=30)
     except Exception as e:
         return f"Error: {e}"
 
