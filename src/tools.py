@@ -14,22 +14,27 @@ class SQLDBQueryParams(BaseModel):
     query: str = Field(..., description="A detailed and correct SQL query.")
 
 
+# main_data = None
+
+
 # Tool function implementation
 @create_tool(
     name="sql_db_query",
     description="Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
     parameters_model=SQLDBQueryParams,
 )
-def sql_db_query(query: str) -> str:
+def sql_db_query(query: str) -> tuple[str, pd.DataFrame | None]:
     """
     Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
     """
     try:
         with engine.connect() as connection:
             df = pd.read_sql(query, connection)
-        return df.to_string(max_rows=30)
+        # global main_data
+        # main_data = df
+        return df.to_string(max_rows=30), df
     except Exception as e:
-        return f"Error: {e}"
+        return f"Error: {e}", None
 
 
 # Pydantic model for parameters
@@ -111,6 +116,23 @@ def sql_db_query_checker(query: str) -> str:
         return "Query is valid."
     except Exception as e:
         return f"Query is NOT valid: {e}"
+
+
+# class DataFrameVisualizationParams(BaseModel):
+#     code_to_be_executed: str = Field(
+#         ...,
+#         description="Python code that generates a visualization of the sales data. The code should assume that the dataframe is already created and available as `df`. Assume pandas and plotly are already imported, do not import them again.",
+#     )
+
+
+# @create_tool(
+#     name="create_visualization",
+#     description="Generate a visualization of the sales data using Python code. Returns a plot, dataframe, or numeric result. IMPORTANT: the function should assume that the dataframe is already created and available as `df`.",
+#     parameters_model=DataFrameVisualizationParams,
+# )
+# def create_visualization(code_to_be_executed: str):
+#     # print(code_to_be_executed)
+#     print("GRAPH GENERATED")
 
 
 # Register the tools
