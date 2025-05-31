@@ -1,6 +1,13 @@
-from fastapi import APIRouter, Request, status
+import logging
 
+from fastapi import APIRouter, Request, Response, status
+
+from backend.agent.graph import compiled_graph
+from backend.agent.prompt import SYSTEM_PROMPT
 from backend.api_schema import ChatRequest, ChatResponse, ErrorResponse
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 router = APIRouter(
     prefix="/chat",
@@ -21,8 +28,26 @@ router = APIRouter(
     description="Chat with the data analyst agent",
     status_code=status.HTTP_200_OK,
 )
-def ask_agent(request: Request, body: ChatRequest, response: ChatResponse):
-    pass
+def ask_agent(request: Request, body: ChatRequest, response: Response):
+    # Check if the first message is a system message
+    if body.messages[0]["role"] != "system":
+        body.messages = [{"role": "system", "content": SYSTEM_PROMPT}] + body.messages
+
+    result = compiled_graph.invoke(
+        {
+            "messages": body.messages,
+            "data": None,
+            "visual_created": body.visual_created,
+            "follow_up_question": body.follow_up_question,
+        },
+        {"recursion_limit": 50},
+    )
+    response = ChatResponse(
+        messages=result["messages"],
+        result=result["messages"][-1].content,
+        follow_up_question=result["follow_up_question"],
+    )
+    return response
 
 
 # @router.post(

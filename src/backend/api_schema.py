@@ -6,11 +6,13 @@ from pydantic import BaseModel, Field
 class ChatRequest(BaseModel):
     messages: list[Any]
     result: str | None = Field(default=None)
+    visual_created: bool = Field(default=False)
     follow_up_question: str | None = Field(default=None)
 
 
 class ChatResponse(BaseModel):
-    message: str | None = Field(default=None)
+    messages: list[Any]
+    visual_created: bool = Field(default=False)
     result: str | None = Field(default=None)
     follow_up_question: str | None = Field(default=None)
 
