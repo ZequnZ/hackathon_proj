@@ -26,7 +26,7 @@ app.layout = html.Div(
         dcc.Store(id="chat-history", data=[]),
         dcc.Store(
             id="all-messages", data=[]
-        ),  # Store for persisting all_messages from backend
+        ),
         html.Div(
             id="chat-window",
             style={
