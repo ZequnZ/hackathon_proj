@@ -4,6 +4,8 @@ A data analyst agent that can help you dig into the database and provide insight
 
 This project is built for AaltoAI hackathon 2025.
 
+[Video demo](https://youtu.be/YHUd5IUiUT8)
+
 ## Architecture
 
 ![Architecture](asset/architecture.jpg)
@@ -66,9 +68,9 @@ Backend will be available at `http://localhost:8002` and you can check out it AP
 
 Frontend provides a way to write questions regarding the Northwind dataset and see the answers as text and images.
 
-![](media/2025-06-01-07-06-46.png)
+![](asset/2025-06-01-07-06-46.png)
 
-![](media/2025-06-01-07-06-28.png)
+![](asset/2025-06-01-07-06-28.png)
 
 To spin up the front end, run `uv run python src/frontend/app.py` in the project root.
 
