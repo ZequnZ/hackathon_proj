@@ -37,7 +37,7 @@ def ask_agent(request: Request, body: ChatRequest, response: Response):
         {
             "messages": body.messages,
             "data": None,
-            "visual_created": body.visual_created,
+            "visual_created": False,
             "follow_up_question": body.follow_up_question,
             "visualization_type": None,
             "visualization_image": None,

@@ -24,13 +24,13 @@ services:
     env_file: ".env"
     stdin_open: true
     tty: true
-    command: bash
+    command: python src/backend/app.py
     depends_on:
       - db
     ports:
       - "8002:8002"
     environment:
-      - ENVIRONMENT=local
+      - ENVIRONMENT=docker
 
   db:
     image: postgres:16
