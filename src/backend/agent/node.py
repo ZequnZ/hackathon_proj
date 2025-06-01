@@ -92,7 +92,6 @@ def call_tool(state: State) -> State:
     # Find the tool call in the last message
     last_message = state["messages"][-1]
     tool_calls = last_message.tool_calls
-    # print(tool_calls)
     new_messages = []
     data = state["data"]
     visualization_type = state["visualization_type"]
@@ -104,14 +103,6 @@ def call_tool(state: State) -> State:
         if tool is None:
             result = f"Tool {tool_name} not found."
         elif tool_name == "create_visualization_with_python_code":
-            # result = tool(**tool_args)
-            # tool_response_message = {
-            #     "type": "tool",
-            #     "tool_call_id": tool_call["id"],
-            #     "content": str(result),
-            # }
-            # new_messages.append(tool_response_message)
-            # state["visualization_image"] = result
             logging.info(
                 "create_visualization_with_python_code will be called separately"
             )
@@ -133,7 +124,7 @@ def call_tool(state: State) -> State:
             "content": str(text_content),
         }
         new_messages.append(tool_response_message)
-        # print(tool_response_message["content"])
+
     return {
         "messages": new_messages,
         "data": data,
@@ -165,7 +156,6 @@ def create_visual(state: State) -> State:  # noqa: C901
                         "df": df,
                     }
 
-                    #######
                     # Capture stdout for any print statements
                     stdout_buffer = io.StringIO()
 
@@ -249,6 +239,9 @@ def create_visual(state: State) -> State:  # noqa: C901
 
 # Routing function
 def route_tools(state: State):
+    """
+    Route the tools based on the state of the graph.
+    """
     last_message = state["messages"][-1]
     if hasattr(last_message, "tool_calls") and last_message.tool_calls:
         for tool_call in last_message.tool_calls:

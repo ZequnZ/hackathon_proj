@@ -8,7 +8,7 @@ from sqlalchemy import create_engine, inspect, text
 
 from backend.utils.tool_creation import create_tool, registry
 
-if os.getenv("ENVIRONMENT") == "local":
+if os.getenv("ENVIRONMENT") == "docker":
     DATABASE_URL = "postgresql://user:password@db:5432/northwind"
 else:
     DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
@@ -17,33 +17,6 @@ else:
 engine = create_engine(DATABASE_URL)
 
 VISUALIZATION_TYPES = Literal["bar", "line", "pie", "scatter"]
-
-
-# Pydantic model for parameters
-class SQLDBQueryParams(BaseModel):
-    query: str = Field(..., description="A detailed and correct SQL query.")
-    reasoning: str = Field(
-        ...,
-        description="The reasoning process of the query, explain your thought process.",
-    )
-
-
-# Tool function implementation
-@create_tool(
-    name="sql_db_query",
-    description="Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
-    parameters_model=SQLDBQueryParams,
-)
-def sql_db_query(query: str, reasoning: str) -> str:
-    """
-    Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
-    """
-    try:
-        with engine.connect() as connection:
-            df = pd.read_sql(query, connection)
-        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=10)}", df
-    except Exception as e:
-        return f"Error: {e}", None
 
 
 # Pydantic model for parameters
@@ -127,9 +100,8 @@ def sql_db_query_checker(query: str) -> str:
         return f"Query is NOT valid: {e}"
 
 
-##############
 # Pydantic model for parameters
-class SQLDBQueryParams2(BaseModel):
+class SQLDBQueryParams(BaseModel):
     query: str = Field(..., description="A detailed and correct SQL query.")
     reasoning: str = Field(
         ...,
@@ -143,11 +115,11 @@ class SQLDBQueryParams2(BaseModel):
 
 # Tool function implementation
 @create_tool(
-    name="sql_db_query2",
+    name="sql_db_query",
     description="Input to this tool is a detailed and correct SQL query, output is a result from the database.The reasoning should include why the visualization type is chosen. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
-    parameters_model=SQLDBQueryParams2,
+    parameters_model=SQLDBQueryParams,
 )
-def sql_db_query2(
+def sql_db_query(
     query: str, reasoning: str, visualization_type: VISUALIZATION_TYPES
 ) -> tuple[str, pd.DataFrame | None, VISUALIZATION_TYPES | None]:
     """
@@ -245,10 +217,9 @@ def python_code_checker(python_code: str) -> str:
 
 
 # Register the tools
-# registry.register(sql_db_query)
+registry.register(sql_db_query)
 registry.register(sql_db_schema)
 registry.register(sql_db_list_tables)
 registry.register(sql_db_query_checker)
-registry.register(sql_db_query2)
 registry.register(create_visualization_with_python_code)
 registry.register(python_code_checker)
