@@ -1,7 +1,9 @@
+import ast
 import os
+from typing import Literal
 
 import pandas as pd
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 from sqlalchemy import create_engine, inspect, text
 
 from backend.utils.tool_creation import create_tool, registry
@@ -13,6 +15,8 @@ else:
 
 # Database setup (adjust as needed)
 engine = create_engine(DATABASE_URL)
+
+VISUALIZATION_TYPES = Literal["bar", "line", "pie", "scatter"]
 
 
 # Pydantic model for parameters
@@ -37,7 +41,7 @@ def sql_db_query(query: str, reasoning: str) -> str:
     try:
         with engine.connect() as connection:
             df = pd.read_sql(query, connection)
-        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=30)}", df
+        return f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=10)}", df
     except Exception as e:
         return f"Error: {e}", None
 
@@ -123,8 +127,128 @@ def sql_db_query_checker(query: str) -> str:
         return f"Query is NOT valid: {e}"
 
 
+##############
+# Pydantic model for parameters
+class SQLDBQueryParams2(BaseModel):
+    query: str = Field(..., description="A detailed and correct SQL query.")
+    reasoning: str = Field(
+        ...,
+        description="The reasoning process of the query, explain your thought process.",
+    )
+    visualization_type: VISUALIZATION_TYPES = Field(
+        ...,
+        description="The type of visualization to create from the query. Options: bar, line, pie, scatter, etc.",
+    )
+
+
+# Tool function implementation
+@create_tool(
+    name="sql_db_query2",
+    description="Input to this tool is a detailed and correct SQL query, output is a result from the database.The reasoning should include why the visualization type is chosen. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.",
+    parameters_model=SQLDBQueryParams2,
+)
+def sql_db_query2(
+    query: str, reasoning: str, visualization_type: VISUALIZATION_TYPES
+) -> tuple[str, pd.DataFrame | None, VISUALIZATION_TYPES | None]:
+    """
+    Input to this tool is a detailed and correct SQL query, output is a result from the database. If the query is not correct, an error message will be returned. If an error is returned, rewrite the query, check the query, and try again. If you encounter an issue with Unknown column 'xxxx' in 'field list', use sql_db_schema to query the correct table fields.
+    """
+    try:
+        with engine.connect() as connection:
+            df = pd.read_sql(query, connection)
+        return (
+            f"Reasoning: {reasoning}\n\nResults: {df.to_string(max_rows=30)}",
+            df,
+            visualization_type,
+        )
+    except Exception as e:
+        return f"Error: {e}", None, None
+
+
+# Pydantic model for parameters
+class CreateVisualizationWithPythonCode(BaseModel):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    python_code: str = Field(
+        ...,
+        description="""Python code to create the visualization based on the data(dataframe) and the visualization type from the graph state.
+        Python code should use pandas and seaborn to visualize the given data.
+        Only use the top 10 rows of the data to create the visualization.
+        Name the dataframe as 'df' and make sure only contains columns that are present in the dataframe.
+        Should print any important results or values that need to be shown to the user. SHOULD NOT contain imports, assume that pandas (as pd) and seaborn as (sns) are already imported.
+        Output returns its base64-encoded PNG image.
+        """,
+    )
+
+
+@create_tool(
+    name="create_visualization_with_python_code",
+    description="""Input to this tool is the Python code to create the visualization based on the data and the visualization type from the graph state.
+    Output is the visualization graph in base64 format.
+    Only use the top 5 rows of the data to create the visualization.
+    Should print any important results or values that need to be shown to the user. SHOULD NOT contain imports, assume that pandas (as pd) and seaborn as (sns) are already imported.
+    Name the dataframe as 'df' in the code.
+    """,
+    parameters_model=CreateVisualizationWithPythonCode,
+)
+def create_visualization_with_python_code(python_code: str) -> str:
+    """
+    Executes the provided Python code (using pandas and seaborn), captures the generated matplotlib plot,
+    and returns its base64-encoded PNG image.
+    """
+    pass
+
+
+# Pydantic model for parameters
+class PythonCodeCheckerParams(BaseModel):
+    python_code: str = Field(
+        ..., description="Python code to be checked for syntax and safety."
+    )
+
+
+# Tool function implementation
+@create_tool(
+    name="python_code_checker",
+    description="""Use this tool to check if a given Python code string is syntactically valid and does not contain dangerous operations.
+    Also check the data(named as df) from graph state is correctly used in the code.
+    Always use this tool before executing any user-generated Python code!
+    """,
+    parameters_model=PythonCodeCheckerParams,
+)
+def python_code_checker(python_code: str) -> str:
+    """
+    Checks if the provided Python code is syntactically valid and safe.
+    Returns a message indicating validity or the error found.
+    """
+    try:
+        # Check for syntax errors
+        ast.parse(python_code)
+    except SyntaxError as e:
+        return f"Code is NOT valid: Syntax error: {e}"
+
+    # Optionally, check for dangerous imports or built-ins
+    forbidden = [
+        "import os",
+        "import sys",
+        "import subprocess",
+        "open(",
+        "exec(",
+        "eval(",
+        "os.",
+        "sys.",
+        "subprocess.",
+    ]
+    for bad in forbidden:
+        if bad in python_code:
+            return f"Code is NOT valid: Use of forbidden code detected: '{bad}'"
+
+    return "Code is valid."
+
+
 # Register the tools
-registry.register(sql_db_query)
+# registry.register(sql_db_query)
 registry.register(sql_db_schema)
 registry.register(sql_db_list_tables)
 registry.register(sql_db_query_checker)
+registry.register(sql_db_query2)
+registry.register(create_visualization_with_python_code)
+registry.register(python_code_checker)

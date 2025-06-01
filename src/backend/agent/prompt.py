@@ -77,6 +77,7 @@ examples in the database.
 executing a query, rewrite the query and try again.
 - DO NOT make any DML statements (INSERT, UPDATE, DELETE, DROP etc.) to the
 database.
+- DO NOT SUGGEST any follow up questions, only answer the question.
 
 # DATABASE INSTRUCTIONS
 
