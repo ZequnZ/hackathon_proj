@@ -15,6 +15,7 @@ class ChatResponse(BaseModel):
     visual_created: bool = Field(default=False)
     result: str | None = Field(default=None)
     follow_up_question: str | None = Field(default=None)
+    visualization_image: str | None = Field(default=None)
 
 
 class HealthResponse(BaseModel):
