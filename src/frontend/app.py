@@ -37,7 +37,7 @@ app.layout = html.Div(
                 "padding": "24px 18px",
                 "marginBottom": "18px",
                 "background": "linear-gradient(135deg, #f8fafc 0%, #e9f0f7 100%)",
-                "maxWidth": "540px",
+                "maxWidth": "800px",
                 "margin": "0 auto",
                 "borderRadius": "18px",
                 "fontFamily": "Inter, sans-serif",
@@ -83,7 +83,7 @@ app.layout = html.Div(
             ],
             style={
                 "display": "flex",
-                "maxWidth": "540px",
+                "maxWidth": "760px",
                 "margin": "0 auto 36px auto",
                 "boxShadow": "0 2px 8px rgba(0,0,0,0.04)",
                 "borderRadius": "12px",
@@ -92,7 +92,7 @@ app.layout = html.Div(
         ),
     ],
     style={
-        "maxWidth": "700px",
+        "maxWidth": "900px",
         "margin": "0 auto",
         "fontFamily": "Inter, sans-serif",
         "background": "#f3f6fa",
@@ -149,6 +149,10 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
         if response.status_code == 200:
             last_message = response.json().get("result", "(No response from backend)")
             all_messages = response.json()["messages"]
+            encoded_image = response.json().get("visualization_image", None)
+            html_img_tag = f'<img src="data:image/png;base64,{encoded_image}" />'
+            follow_up_question = response.json().get("follow_up_question", None)
+            # print(f"Visualization image: {encoded_image}")
             # import json
             new_messages = []
             for msg in all_messages:
@@ -163,14 +167,40 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
                 # print(json.dumps(new_msg, indent=2))
 
             all_messages = new_messages
+
+            history.append({"type": "ai", "content": last_message})
+            if encoded_image:
+                history.append(
+                    {
+                        "type": "ai",
+                        "content": html_img_tag,
+                        "visualization_image": encoded_image,
+                    }
+                )
+            if follow_up_question:
+                history.append(
+                    {
+                        "type": "ai",
+                        "content": follow_up_question,
+                        "follow_up_question": follow_up_question,
+                    }
+                )
+                all_messages.append(
+                    {
+                        "type": "ai",
+                        "content": html_img_tag,
+                        "visualization_image": encoded_image,
+                    }
+                )
         else:
             last_message = f"(Backend error: {response.status_code})"
             all_messages = dash.no_update
+            history.append({"type": "ai", "content": last_message})
     except Exception as e:
         last_message = f"(Backend error: {str(e)})"
         all_messages = dash.no_update
+        history.append({"type": "ai", "content": last_message})
 
-    history.append({"type": "ai", "content": last_message})
     return history, "", all_messages
 
 
@@ -216,14 +246,26 @@ def render_chat(history):
             "display": "flex",
             "justifyContent": "flex-end" if is_user else "flex-start",
         }
-        messages.append(
-            html.Div(
-                [html.Span(msg["content"], style=bubble_style)], style=wrapper_style
+        print(msg["content"][:20])
+        # Render raw HTML if content contains an <img tag (or any HTML)
+        if not is_user and ("<img" in msg["content"] or msg["content"].strip().startswith("<")):
+            print("Rendering HTML content")
+            # print(msg["content"])
+            messages.append(
+                html.Div(
+                    dcc.Markdown(msg["content"], dangerously_allow_html=True, style=bubble_style),
+                    style=wrapper_style,
+                )
             )
-        )
+        else:
+            messages.append(
+                html.Div(
+                    [html.Span(msg["content"], style=bubble_style)], style=wrapper_style
+                )
+            )
     return messages
 
 
 if __name__ == "__main__":
-    print("\n" * 10)
+    print("\n")
     app.run(debug=True)
