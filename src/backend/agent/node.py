@@ -28,7 +28,7 @@ llm = langchain_openai_client
 
 def post_process_message(message: dict) -> str:
     if message.type == "ai":
-        logging.error(f"AI message: {message.tool_calls}")
+        # logging.error(f"AI message: {message.tool_calls}")
         if message.tool_calls:
             return {
                 "type": "ai",
@@ -92,7 +92,7 @@ def call_tool(state: State) -> State:
     # Find the tool call in the last message
     last_message = state["messages"][-1]
     tool_calls = last_message.tool_calls
-    print(tool_calls)
+    # print(tool_calls)
     new_messages = []
     data = state["data"]
     visualization_type = state["visualization_type"]
@@ -133,7 +133,7 @@ def call_tool(state: State) -> State:
             "content": str(text_content),
         }
         new_messages.append(tool_response_message)
-        print(tool_response_message["content"])
+        # print(tool_response_message["content"])
     return {
         "messages": new_messages,
         "data": data,
@@ -245,13 +245,6 @@ def create_visual(state: State) -> State:  # noqa: C901
                             "visualization_image": result,
                             "visual_created": False,
                         }
-
-
-# def create_visualization(state: State) -> State:
-#     # print(code_to_be_executed)
-#     print("GRAPH GENERATED")
-#     state["visual_created"] = True
-#     return state
 
 
 # Routing function

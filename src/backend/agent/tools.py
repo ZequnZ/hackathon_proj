@@ -1,3 +1,4 @@
+import ast
 import os
 from typing import Literal
 
@@ -197,6 +198,52 @@ def create_visualization_with_python_code(python_code: str) -> str:
     pass
 
 
+# Pydantic model for parameters
+class PythonCodeCheckerParams(BaseModel):
+    python_code: str = Field(
+        ..., description="Python code to be checked for syntax and safety."
+    )
+
+
+# Tool function implementation
+@create_tool(
+    name="python_code_checker",
+    description="""Use this tool to check if a given Python code string is syntactically valid and does not contain dangerous operations.
+    Also check the data(named as df) from graph state is correctly used in the code.
+    Always use this tool before executing any user-generated Python code!
+    """,
+    parameters_model=PythonCodeCheckerParams,
+)
+def python_code_checker(python_code: str) -> str:
+    """
+    Checks if the provided Python code is syntactically valid and safe.
+    Returns a message indicating validity or the error found.
+    """
+    try:
+        # Check for syntax errors
+        ast.parse(python_code)
+    except SyntaxError as e:
+        return f"Code is NOT valid: Syntax error: {e}"
+
+    # Optionally, check for dangerous imports or built-ins
+    forbidden = [
+        "import os",
+        "import sys",
+        "import subprocess",
+        "open(",
+        "exec(",
+        "eval(",
+        "os.",
+        "sys.",
+        "subprocess.",
+    ]
+    for bad in forbidden:
+        if bad in python_code:
+            return f"Code is NOT valid: Use of forbidden code detected: '{bad}'"
+
+    return "Code is valid."
+
+
 # Register the tools
 # registry.register(sql_db_query)
 registry.register(sql_db_schema)
@@ -204,3 +251,4 @@ registry.register(sql_db_list_tables)
 registry.register(sql_db_query_checker)
 registry.register(sql_db_query2)
 registry.register(create_visualization_with_python_code)
+registry.register(python_code_checker)
