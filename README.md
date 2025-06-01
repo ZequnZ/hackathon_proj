@@ -20,6 +20,18 @@ This architecture allows us to have a flexible and scalable system, where the ba
 
 Rest API is used to integrate the frontend with the backend, providing a standardized way for communication while frontend can focus more on the UI/UX side to provide a better user experience.
 
+## Agent Graph
+
+![Agent Graph](asset/agent_graph.png)
+
+Our agent is equipped with a set of tools to interact with the database and LLM:
+
+- **sql_db_schema**: Given a comma-separated list of table names, returns the schema and sample rows for those tables. Use after confirming table existence with `sql_db_list_tables`.
+- **sql_db_list_tables**: Returns a comma-separated list of all tables in the database. Use to discover available tables.
+- **sql_db_query_checker**: Checks if a given SQL query is valid (using EXPLAIN). Always use before executing a query with `sql_db_query`.
+- **sql_db_query**: Executes a detailed and correct SQL query, returns results and reasoning, and supports specifying a visualization type (bar, line, pie, scatter). Main tool for querying the database and getting results for analysis and visualization.
+- **create_visualization_with_python_code**: Executes user-supplied Python code (using pandas/seaborn) to create a visualization from a DataFrame, returns a base64-encoded PNG image. Used to generate custom visualizations from query results.
+- **python_code_checker**: Checks if a given Python code string is syntactically valid and safe (no dangerous operations). Always use before executing any user-generated Python code.
 
 ## Run the project
 
@@ -77,9 +89,6 @@ To spin up the front end, run `uv run python src/frontend/app.py` in the project
 ### LangSmith Tracing
 
 LangSmith Tracing can also be used for tracing the AI agent's behavior. After simply adding your key, you can find the traces at `https://smith.langchain.com/` and you can also use the `langsmith` CLI to view the traces.
-
-
-
 
 ## Example questions & answers
 
