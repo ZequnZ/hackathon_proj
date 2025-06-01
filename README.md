@@ -62,12 +62,15 @@ docker compose down
 
 Backend will be available at `http://localhost:8002` and you can check out it API spec at `http://localhost:8002/docs`.
 
+### Frontend
+TODO
+
+
 ### LangSmith Tracing
 
 LangSmith Tracing can also be used for tracing the AI agent's behavior. After simply adding your key, you can find the traces at `https://smith.langchain.com/` and you can also use the `langsmith` CLI to view the traces.
 
-### Frontend
-TODO
+
 
 
 ## Example questions & answers

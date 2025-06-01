@@ -24,9 +24,7 @@ app.layout = html.Div(
             },
         ),
         dcc.Store(id="chat-history", data=[]),
-        dcc.Store(
-            id="all-messages", data=[]
-        ),
+        dcc.Store(id="all-messages", data=[]),
         html.Div(
             id="chat-window",
             style={
@@ -113,7 +111,7 @@ app.layout = html.Div(
     State("all-messages", "data"),  # Add state for all_messages
     prevent_initial_call=True,
 )
-def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
+def update_chat(n_clicks, n_submit, user_msg, history, all_messages):  # noqa: C901
     """Updates the user-input element and chat history when the user sends a message.
     This function is triggered when the user clicks the "Send" button.
     It appends the user's message to the chat history and clears the user-input textbox.
@@ -245,7 +243,9 @@ def render_chat(history):
         }
         messages.append(
             html.Div(
-                dcc.Markdown(msg["content"], dangerously_allow_html=True, style=bubble_style),
+                dcc.Markdown(
+                    msg["content"], dangerously_allow_html=True, style=bubble_style
+                ),
                 style=wrapper_style,
             )
         )
