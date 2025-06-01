@@ -63,8 +63,12 @@ docker compose down
 Backend will be available at `http://localhost:8002` and you can check out it API spec at `http://localhost:8002/docs`.
 
 ### Frontend
-TODO
 
+Frontend provides a way to write questions regarding the Northwind dataset and see the answers as text and images.
+
+![](media/2025-06-01-07-06-46.png)
+
+![](media/2025-06-01-07-06-28.png)
 
 ### LangSmith Tracing
 
