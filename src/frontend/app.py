@@ -1,4 +1,5 @@
 import dash
+import requests
 from dash import Input, Output, State, dcc, html
 
 # Google Fonts import for modern look
@@ -23,6 +24,9 @@ app.layout = html.Div(
             },
         ),
         dcc.Store(id="chat-history", data=[]),
+        dcc.Store(
+            id="all-messages", data=[]
+        ),
         html.Div(
             id="chat-window",
             style={
@@ -33,7 +37,7 @@ app.layout = html.Div(
                 "padding": "24px 18px",
                 "marginBottom": "18px",
                 "background": "linear-gradient(135deg, #f8fafc 0%, #e9f0f7 100%)",
-                "maxWidth": "540px",
+                "maxWidth": "800px",
                 "margin": "0 auto",
                 "borderRadius": "18px",
                 "fontFamily": "Inter, sans-serif",
@@ -79,7 +83,7 @@ app.layout = html.Div(
             ],
             style={
                 "display": "flex",
-                "maxWidth": "540px",
+                "maxWidth": "760px",
                 "margin": "0 auto 36px auto",
                 "boxShadow": "0 2px 8px rgba(0,0,0,0.04)",
                 "borderRadius": "12px",
@@ -88,7 +92,7 @@ app.layout = html.Div(
         ),
     ],
     style={
-        "maxWidth": "700px",
+        "maxWidth": "900px",
         "margin": "0 auto",
         "fontFamily": "Inter, sans-serif",
         "background": "#f3f6fa",
@@ -101,30 +105,100 @@ app.layout = html.Div(
 @app.callback(
     Output("chat-history", "data"),
     Output("user-input", "value"),
+    Output("all-messages", "data"),  # Add output for all_messages
     Input("send-btn", "n_clicks"),
     Input("user-input", "n_submit"),  # Trigger on Enter key
     State("user-input", "value"),
     State("chat-history", "data"),
+    State("all-messages", "data"),  # Add state for all_messages
     prevent_initial_call=True,
 )
-def update_chat(n_clicks, n_submit, user_msg, history):
+def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
     """Updates the user-input element and chat history when the user sends a message.
     This function is triggered when the user clicks the "Send" button.
     It appends the user's message to the chat history and clears the user-input textbox.
+    Persists all_messages from backend in dcc.Store.
     """
     ctx = dash.callback_context
     if not ctx.triggered:
-        return dash.no_update, ""
-    # Only proceed if triggered by send button or Enter key
+        return dash.no_update, "", dash.no_update
     if not user_msg or user_msg.strip() == "":
-        return dash.no_update, ""
-    # Append user message
+        return dash.no_update, "", dash.no_update
     history = history or []
-    history.append({"role": "user", "content": user_msg})
-    # Simulate AI response (replace with backend call as needed)
-    ai_response = f"You said: {user_msg} (AI response placeholder)"
-    history.append({"role": "ai", "content": ai_response})
-    return history, ""
+    history.append({"type": "user", "content": user_msg})
+
+    all_messages.append({"type": "user", "content": user_msg})
+    try:
+        payload = {
+            "messages": all_messages,
+            "result": "string",
+            "visual_created": False,
+            "follow_up_question": "string",
+        }
+        response = requests.post(
+            "http://127.0.0.1:8002/chat/ask_agent",
+            json=payload,
+            timeout=40,
+        )
+        valid_response_keys = [
+            "type",
+            "content",
+            "tool_calls",
+            "tool_call_id",
+        ]
+        if response.status_code == 200:
+            last_message = response.json().get("result", "(No response from backend)")
+            all_messages = response.json()["messages"]
+            encoded_image = response.json().get("visualization_image", None)
+            html_img_tag = f'<img src="data:image/png;base64,{encoded_image}" />'
+            follow_up_question = response.json().get("follow_up_question", None)
+            new_messages = []
+            for msg in all_messages:
+                if msg["type"] == "system":
+                    continue
+                new_msg = {}
+                for valid_key in valid_response_keys:
+                    if valid_key in msg:
+                        new_msg[valid_key] = msg[valid_key]
+
+                new_messages.append(new_msg)
+
+            all_messages = new_messages
+
+            history.append({"type": "ai", "content": last_message})
+            if encoded_image:
+                history.append(
+                    {
+                        "type": "ai",
+                        "content": html_img_tag,
+                        "visualization_image": encoded_image,
+                    }
+                )
+            if follow_up_question:
+                history.append(
+                    {
+                        "type": "ai",
+                        "content": f"<b>Follow-up questions:</b><br/>{follow_up_question}",
+                        "follow_up_question": follow_up_question,
+                    }
+                )
+                all_messages.append(
+                    {
+                        "type": "ai",
+                        "content": html_img_tag,
+                        "visualization_image": encoded_image,
+                    }
+                )
+        else:
+            last_message = f"(Backend error: {response.status_code})"
+            all_messages = dash.no_update
+            history.append({"type": "ai", "content": last_message})
+    except Exception as e:
+        last_message = f"(Backend error: {str(e)})"
+        all_messages = dash.no_update
+        history.append({"type": "ai", "content": last_message})
+
+    return history, "", all_messages
 
 
 @app.callback(
@@ -147,7 +221,7 @@ def render_chat(history):
         )
     messages = []
     for msg in history:
-        is_user = msg["role"] == "user"
+        is_user = msg["type"] == "user"
         align = "right" if is_user else "left"
         color = "#2563eb" if is_user else "#f1f5f9"
         text_color = "#fff" if is_user else "#222"
@@ -171,9 +245,11 @@ def render_chat(history):
         }
         messages.append(
             html.Div(
-                [html.Span(msg["content"], style=bubble_style)], style=wrapper_style
+                dcc.Markdown(msg["content"], dangerously_allow_html=True, style=bubble_style),
+                style=wrapper_style,
             )
         )
+
     return messages
 
 

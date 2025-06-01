@@ -6,7 +6,7 @@ from sqlalchemy import create_engine, inspect, text
 
 from backend.utils.tool_creation import create_tool, registry
 
-if os.getenv("ENVIRONMENT") == "local":
+if os.getenv("ENVIRONMENT") == "docker":
     DATABASE_URL = "postgresql://user:password@db:5432/northwind"
 else:
     DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"

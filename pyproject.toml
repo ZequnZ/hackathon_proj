@@ -13,10 +13,12 @@ dependencies = [
     "langsmith>=0.3.42",
     "openai>=1.82.0",
     "pandas>=2.2.3",
+    "plotly>=6.1.2",
     "psycopg2-binary>=2.9.10",
     "pydantic>=2.11.4",
     "pydantic-settings>=2.9.1",
     "python-dotenv>=1.1.0",
+    "seaborn>=0.13.2",
     "sqlalchemy>=2.0.41",
     "uvicorn>=0.34.2",
 ]

@@ -28,6 +28,6 @@ graph.add_conditional_edges(
     },
 )
 graph.add_edge("tools", "call_model")
-graph.add_edge("create_visual", "suggest_follow_up_question")
+graph.add_edge("create_visual", "call_model")
 graph.add_edge("suggest_follow_up_question", END)
 compiled_graph = graph.compile()

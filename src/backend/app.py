@@ -12,7 +12,7 @@ from backend.routers import health, prediction
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Check the connection to the database
-    if os.getenv("ENVIRONMENT") == "local":
+    if os.getenv("ENVIRONMENT") == "docker":
         DATABASE_URL = "postgresql://user:password@db:5432/northwind"
     else:
         DATABASE_URL = "postgresql://user:password@0.0.0.0:5432/northwind"
@@ -46,5 +46,5 @@ if __name__ == "__main__":
         "app:app",
         host="0.0.0.0",
         port=8002,
-        reload=(True if os.getenv("ENVIRONMENT") == "local" else False),
+        reload=(True if os.getenv("ENVIRONMENT") == "docker" else False),
     )
