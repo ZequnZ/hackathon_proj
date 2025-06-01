@@ -152,8 +152,6 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
             encoded_image = response.json().get("visualization_image", None)
             html_img_tag = f'<img src="data:image/png;base64,{encoded_image}" />'
             follow_up_question = response.json().get("follow_up_question", None)
-            # print(f"Visualization image: {encoded_image}")
-            # import json
             new_messages = []
             for msg in all_messages:
                 if msg["type"] == "system":
@@ -164,7 +162,6 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
                         new_msg[valid_key] = msg[valid_key]
 
                 new_messages.append(new_msg)
-                # print(json.dumps(new_msg, indent=2))
 
             all_messages = new_messages
 
@@ -181,7 +178,7 @@ def update_chat(n_clicks, n_submit, user_msg, history, all_messages):
                 history.append(
                     {
                         "type": "ai",
-                        "content": follow_up_question,
+                        "content": f"<b>Follow-up questions:</b><br/>{follow_up_question}",
                         "follow_up_question": follow_up_question,
                     }
                 )
@@ -246,23 +243,13 @@ def render_chat(history):
             "display": "flex",
             "justifyContent": "flex-end" if is_user else "flex-start",
         }
-        print(msg["content"][:20])
-        # Render raw HTML if content contains an <img tag (or any HTML)
-        if not is_user and ("<img" in msg["content"] or msg["content"].strip().startswith("<")):
-            print("Rendering HTML content")
-            # print(msg["content"])
-            messages.append(
-                html.Div(
-                    dcc.Markdown(msg["content"], dangerously_allow_html=True, style=bubble_style),
-                    style=wrapper_style,
-                )
+        messages.append(
+            html.Div(
+                dcc.Markdown(msg["content"], dangerously_allow_html=True, style=bubble_style),
+                style=wrapper_style,
             )
-        else:
-            messages.append(
-                html.Div(
-                    [html.Span(msg["content"], style=bubble_style)], style=wrapper_style
-                )
-            )
+        )
+
     return messages
 
 
